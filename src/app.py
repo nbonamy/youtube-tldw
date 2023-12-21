@@ -6,7 +6,10 @@ import os.path
 from config import Config
 from downloader import Downloader
 from summarizer import Summarizer
-from bottle import Bottle, request, static_file
+from bottle import Bottle, request, abort, static_file
+
+# we need this as a global so we can use it in the ask endpoint
+summarizer = None
 
 # and an app with a config
 app = Bottle()
@@ -53,6 +56,7 @@ def summarize():
   verbosity = request.query.verbosity
 
   # default model
+  global summarizer
   summarizer = Summarizer(app.config.get('config'))
   if model is None or model == '':
     models = summarizer.list_models()['models']
@@ -89,7 +93,24 @@ def summarize():
       'summarize_time': int(summarize_time),
       'total_time': int(download_time + summarize_time)
     },
-    'summary': summary
+    'summary': summary.strip()
+  }
+
+@app.route('/ask')
+def ask():
+  if summarizer is None:
+    abort(400, 'Must summarize first')
+  question = request.query.question
+  start = utils.now()
+  answer = summarizer.ask_through_embeddings(f'Based om the transcript {question}')
+  response_time = utils.now() - start
+  return {
+    'question': question,
+    'answer': answer,
+    'performance': {
+      'response_time': int(response_time),
+      'total_time': int(response_time)
+    },
   }
 
 @app.route('/<filepath:path>')

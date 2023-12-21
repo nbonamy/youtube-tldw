@@ -19,6 +19,8 @@ class Summarizer:
 
   def __init__(self, config):
     self.config = config
+    self.ollama = None
+    self.vectorstore = None
 
   def list_models(self):
     url = f'{self.config.ollama_url()}/api/tags'
@@ -33,11 +35,22 @@ class Summarizer:
     else:
       raise Exception('Unknown method')
 
+  def ask_through_embeddings(self, question):
+
+    # check
+    if self.vectorstore is None:
+      raise Exception('Must summarize first')
+    
+    # now query
+    print('retrieving')
+    qachain = RetrievalQA.from_chain_type(self.ollama, retriever=self.vectorstore.as_retriever(search_kwargs={"k": 1}))
+    return qachain({"query": question})['result']
+    
 
   def _summarize_through_embeddings(self, ollama_model, document, verbosity):
 
     # ollama
-    ollama = Ollama(base_url=self.config.ollama_url(), model=ollama_model)
+    self.ollama = Ollama(base_url=self.config.ollama_url(), model=ollama_model)
 
     # split
     print('splitting')
@@ -47,13 +60,10 @@ class Summarizer:
     # create embeddings
     print('creating embeddings')
     oembed = OllamaEmbeddings(base_url=self.config.ollama_url(), model=ollama_model)
-    vectorstore = Chroma.from_documents(documents=all_splits, embedding=oembed)
+    self.vectorstore = Chroma.from_documents(documents=all_splits, embedding=oembed)
 
     # now query
-    print('retrieving')
-    question = 'Summarize the text highlighting main topics'
-    qachain = RetrievalQA.from_chain_type(ollama, retriever=vectorstore.as_retriever(search_kwargs={"k": 1}))
-    return qachain({"query": question})['result']
+    return self.ask_through_embeddings('Summarize the text highlighting main topics')
 
   def _summarize_through_prompt(self, model, document, verbosity):
     return self._summarize_through_prompt2(model, document, verbosity)
@@ -91,7 +101,7 @@ class Summarizer:
     chat_model(messages)
 
     # done
-    return stream_handler.text.strip()
+    return stream_handler.text
 
 class StreamHandler(BaseCallbackHandler):
   def __init__(self):

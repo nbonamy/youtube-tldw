@@ -13,6 +13,7 @@ var vm = new Vue({
     verbosity: 'concise',
     summary: null,
     time: 0,
+    hasEmbeds: false,
     isReady: false,
     isLoading: false,
   },
@@ -34,6 +35,7 @@ var vm = new Vue({
     },
     loadVideoInfo() {
       this.summary = null
+      this.hasEmbeds = false
       this.isLoading = true
       axios.get(`/info?video=${this.video}`).then(response => {
         this.info = response.data
@@ -56,9 +58,20 @@ var vm = new Vue({
       axios.get(`/summarize?video=${this.video}&lang=${this.lang}&model=${this.model}&method=${this.method}&verbosity=${this.verbosity}`).then(response => {
         this.summary = response.data.summary
         this.time = response.data.performance.total_time
+        this.hasEmbeds = (this.method == 'embeddings')
         this.isLoading = false
       }).catch(_ => {
         this.showError('Error while summarizing video.')
+      })
+    },
+    ask() {
+      this.isLoading = true
+      axios.get(`/ask?question=${this.question}`).then(response => {
+        this.summary = response.data.answer
+        this.time = response.data.performance.total_time
+        this.isLoading = false
+      }).catch(_ => {
+        this.showError('Error while asking model.')
       })
     },
     parseDate(dateString) {

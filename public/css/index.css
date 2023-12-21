@@ -18,6 +18,10 @@ main {
 	flex-grow: 1;
 }
 
+.summary input, .summary textarea {
+	width: 750px;
+}
+
 .header {
 	margin-bottom: 16px;
 }

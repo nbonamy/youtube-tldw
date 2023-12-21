@@ -24,7 +24,7 @@
 			<div class="hero-body">
 				<div class="container">
 					<h1 class="title">youtube-tl;dw</h1>
-					<h2 class="subtitle"> summarize youtube videos you don't have time to watch! </h2>
+					<h2 class="subtitle">summarize youtube videos you don't have time to watch!</h2>
 				</div>
 			</div>
 		</header>
@@ -70,8 +70,12 @@
 					<div class="channel"><a :href="info.channel_url" target="_blank">{{ info?.channel }}</a></div>
 					<div class="date">{{ formatDate(parseDate(info?.date)) }}</div>
 				</section>
+				<b-field v-if="hasEmbeds">
+					<b-input v-model="question" placeholder="Ask any question!"></b-input>
+					<p class="control"><b-button type="is-info" label="Ask" @click="ask"/></p>
+				</b-field>
 				<b-field v-if="info">
-					<b-input type="textarea" v-model="summary" placeholder="Ready to summarize!" rows="15" cols="256" :readonly="true"></b-input>
+					<b-input type="textarea" v-model="summary" placeholder="Ready to summarize!" rows="15" :readonly="true"></b-input>
 				</b-field>
 				<span v-if="summary">Total time: {{ time }} ms</span>
 			</section>
