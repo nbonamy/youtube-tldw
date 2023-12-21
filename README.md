@@ -5,7 +5,7 @@ Python webapp to summarize YouTube videos. Tested on macOS. Requires [ollama](ht
 
 ## Ollama setup
 
-Do not forget to pull at least [one model for Ollama](https://ollama.ai/library). Preferred are `mistral:latest` and `llama:latest`.
+Do not forget to pull at least [one model for Ollama](https://ollama.ai/library). Preferred are `mistral:latest` 🇫🇷 and `llama:latest`.
 
 ```
 ollama pull <model_name>
