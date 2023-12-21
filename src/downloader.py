@@ -12,7 +12,7 @@ class Downloader:
 
   def get_info(self, url):
     ydl_opts = {
-      'listsubtitles': True,
+      'verbose': False,
     }
     with YoutubeDL(ydl_opts) as ydl:
       return ydl.extract_info(url, download=False)
@@ -30,6 +30,7 @@ class Downloader:
 
     # basic options
     ydl_opts = {
+      'verbose': False,
       'skip_download': True,
       'writesubtitles': True,
       'outtmpl': f'{tmp_dir}/%(id)s.%(ext)s',

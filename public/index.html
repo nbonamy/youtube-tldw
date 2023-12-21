@@ -74,10 +74,10 @@
 					<b-input v-model="question" placeholder="Ask any question!"></b-input>
 					<p class="control"><b-button type="is-info" label="Ask" @click="ask"/></p>
 				</b-field>
-				<b-field v-if="info">
-					<b-input type="textarea" v-model="summary" placeholder="Ready to summarize!" rows="15" :readonly="true"></b-input>
+				<b-field v-if="response">
+					<b-input type="textarea" v-model="response.text" placeholder="Ready to summarize!" rows="15" :readonly="true"></b-input>
 				</b-field>
-				<span v-if="summary">Total time: {{ time }} ms</span>
+				<span v-if="response">{{ performance }}</span>
 			</section>
 		</main>
 	</div>

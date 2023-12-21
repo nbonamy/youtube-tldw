@@ -11,11 +11,16 @@ var vm = new Vue({
     model: 'default',
     method: 'prompt',
     verbosity: 'concise',
-    summary: null,
-    time: 0,
+    response: null,
     hasEmbeds: false,
     isReady: false,
     isLoading: false,
+  },
+  computed: {
+    performance() {
+      let perf = this.response?.performance
+      return `Total time: ${perf?.total_time} ms / Time to 1st token: ${perf?.time_1st_token} ms / Tokens per sec: ${perf?.tokens_per_sec}`
+    }
   },
   methods: {
     unready() {
@@ -56,8 +61,7 @@ var vm = new Vue({
     summarize() {
       this.isLoading = true
       axios.get(`/summarize?video=${this.video}&lang=${this.lang}&model=${this.model}&method=${this.method}&verbosity=${this.verbosity}`).then(response => {
-        this.summary = response.data.summary
-        this.time = response.data.performance.total_time
+        this.response = response.data
         this.hasEmbeds = (this.method == 'embeddings')
         this.isLoading = false
       }).catch(_ => {
@@ -67,8 +71,7 @@ var vm = new Vue({
     ask() {
       this.isLoading = true
       axios.get(`/ask?question=${this.question}`).then(response => {
-        this.summary = response.data.answer
-        this.time = response.data.performance.total_time
+        this.response = response.data
         this.isLoading = false
       }).catch(_ => {
         this.showError('Error while asking model.')

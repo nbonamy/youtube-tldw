@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import os
+import utils
 import consts
-import litellm
 import requests
 from langchain.llms import Ollama
 from langchain.schema.document import Document
@@ -22,12 +22,11 @@ class Summarizer:
     self.ollama = None
     self.vectorstore = None
 
-  def list_models(self):
+  def list_models(self) -> dict:
     url = f'{self.config.ollama_url()}/api/tags'
     return requests.get(url).json()
 
-  def summarize(self, captions, model, method, verbosity):
-
+  def summarize(self, captions, model, method, verbosity) -> dict:
     if method == 'embeddings':
       return self._summarize_through_embeddings(model, captions, verbosity)
     elif method == 'prompt':
@@ -35,77 +34,104 @@ class Summarizer:
     else:
       raise Exception('Unknown method')
 
-  def ask_through_embeddings(self, question):
+  def ask_through_embeddings(self, question) -> dict:
 
     # check
     if self.vectorstore is None:
       raise Exception('Must summarize first')
     
     # now query
-    print('retrieving')
-    qachain = RetrievalQA.from_chain_type(self.ollama, retriever=self.vectorstore.as_retriever(search_kwargs={"k": 1}))
-    return qachain({"query": question})['result']
+    print('[summarize] retrieving')
+    stream_handler = StreamHandler()
+    qachain = RetrievalQA.from_chain_type(self.ollama, retriever=self.vectorstore.as_retriever(search_kwargs={"k": 1}), callbacks=[stream_handler])
+    qachain({"query": question})
     
+    # done
+    return stream_handler.output()
 
-  def _summarize_through_embeddings(self, ollama_model, document, verbosity):
+  def _summarize_through_embeddings(self, ollama_model, document, verbosity)-> dict:
 
     # ollama
     self.ollama = Ollama(base_url=self.config.ollama_url(), model=ollama_model)
 
     # split
-    print('splitting')
+    print('[summarize] splitting text')
     text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
     all_splits = [Document(page_content=x) for x in text_splitter.split_text(document)]
 
     # create embeddings
-    print('creating embeddings')
+    print('[summarize] creating embeddings')
     oembed = OllamaEmbeddings(base_url=self.config.ollama_url(), model=ollama_model)
     self.vectorstore = Chroma.from_documents(documents=all_splits, embedding=oembed)
 
     # now query
-    return self.ask_through_embeddings('Summarize the text highlighting main topics')
+    return self.ask_through_embeddings(self._system_prompt(verbosity))
 
-  def _summarize_through_prompt(self, model, document, verbosity):
-    return self._summarize_through_prompt2(model, document, verbosity)
-  
-  def _summarize_through_prompt1(self, model, document, verbosity):
-    print('prompting')
-    litellm.set_verbose=True
-    response = litellm.completion(
-      api_base=self.config.ollama_url(),
-      model=f'ollama/{model}',
-      stream=True,
-      messages=[
-        { "role": "system", "content": "you specialize in summarizing youtube videos captions. you do so by extracting key topics from captions. you provide a summary and can create youtube links specifying the timestamp matching the topic when relevant.", },
-        #{ "role": "user", "content": document, },
-        { "role": "user", "content": "summarize previous text", }
-      ],
-    )
-    for chunk in response:
-      print(chunk['choices'][0]['delta'])
-
-  def _summarize_through_prompt2(self, ollama_model, document, verbosity):
-
-    # system prompt
-    system_prompt = f'Generate a detailed summary of the transcript provided below. Provide key highlights and detailed insights. Use present tense.'
-    if verbosity == consts.VERBOSITY_CONCISE:
-      system_prompt = f'Generate a concise summary of the transcript provided below. Use present tense.'
-
-    # prompting
-    print('prompting')
-    stream_handler = StreamHandler()
-    chat_model = ChatOllama(model=ollama_model, callbacks=[stream_handler], verbose=True)
+  def _summarize_through_prompt(self, model, document, verbosity)-> dict:
+    
+    # messages
+    system_message = SystemMessage(content=self._system_prompt(verbosity))
     human_message = HumanMessage(content=document)
-    system_message = SystemMessage(content=system_prompt)
     messages = [system_message, human_message]
+    
+    # now run it
+    print('[summarize] prompting')
+    stream_handler = StreamHandler()
+    chat_model = ChatOllama(model=model, callbacks=[stream_handler])
     chat_model(messages)
 
     # done
-    return stream_handler.text
+    return stream_handler.output()
+
+  def _system_prompt(self, verbosity) -> str:
+    if verbosity == consts.VERBOSITY_CONCISE:
+      return 'Generate a concise summary of the transcript provided below. Use present tense.'
+    elif verbosity == consts.VERBOSITY_DETAILED:
+      return 'Generate a detailed summary of the transcript provided below. Provide key highlights and detailed insights. Use present tense.'
+    else:
+      raise Exception('Unknown verbosity')
 
 class StreamHandler(BaseCallbackHandler):
   def __init__(self):
-    self.text = ''
+    self.created = utils.now()
+    self.text = None
+    self.start = None
+    self.end = None
+    self.tokens = 0
 
   def on_llm_new_token(self, token: str, **kwargs) -> None:
-    self.text += token
+    if self.text is None:
+      self.text = token
+      self.start = utils.now()
+      self.end = utils.now()
+      self.tokens = 1
+    else:
+      self.text += token
+      self.tokens += 1
+      self.end = utils.now()
+
+  def on_chain_start(self, serialized: dict, inputs: dict, **kwargs) -> None:
+    if self.text is None:
+      self.start = utils.now()
+      self.end = utils.now()
+  
+  def on_chain_end(self, outputs: dict, **kwargs) -> None:
+    if self.text is None:
+      self.text = outputs['result']
+      self.end = utils.now()
+  
+  def time_1st_token(self) -> float:
+    return self.start - self.created
+
+  def tokens_per_sec(self)  -> float:
+    return self.tokens / (self.end - self.start) * 1000
+
+  def output(self) -> dict:
+    return {
+      'text': self.text.strip(),
+      'performance': {
+        'tokens': self.tokens,
+        'time_1st_token': int(self.time_1st_token()),
+        'tokens_per_sec': round(self.tokens_per_sec(), 2)
+      }
+    }

@@ -30,7 +30,6 @@ def info():
   downloader = Downloader(app.config.get('config'))
   video = request.query.video
   info = downloader.get_info(video)
-  print(info['subtitles'].keys())
   return {
     'id': info['id'],
     'title': info['fulltitle'],
@@ -72,7 +71,7 @@ def summarize():
   start = utils.now()
 
   # first get captions
-  print(f'downloading captions for {video} in lang {lang}')
+  print(f'[youtube] downloading captions for {video} in lang {lang}')
   captions = downloader.download_captions(video, lang)
 
   # time
@@ -80,38 +79,35 @@ def summarize():
   start = utils.now()
 
   # now summarize
-  print(f'summarizing with model {model} using method {method} and verbosity {verbosity}')
-  summary = summarizer.summarize(captions, model, method, verbosity)
+  print(f'[summarize] model {model}, method {method}, verbosity {verbosity}')
+  result = summarizer.summarize(captions, model, method, verbosity)
 
   # time
-  summarize_time = utils.now() - start
+  processing_time = utils.now() - start
 
   # done
-  return {
-    'performance': {
-      'download_time': int(download_time),
-      'summarize_time': int(summarize_time),
-      'total_time': int(download_time + summarize_time)
-    },
-    'summary': summary.strip()
-  }
+  result['performance']['download_time'] = int(download_time)
+  result['performance']['processing_time'] = int(processing_time)
+  result['performance']['total_time'] = int(download_time + processing_time)
+  return result
 
 @app.route('/ask')
 def ask():
+
+  # must have embeddings
   if summarizer is None:
     abort(400, 'Must summarize first')
+  
+  # do it
   question = request.query.question
   start = utils.now()
-  answer = summarizer.ask_through_embeddings(f'Based om the transcript {question}')
-  response_time = utils.now() - start
-  return {
-    'question': question,
-    'answer': answer,
-    'performance': {
-      'response_time': int(response_time),
-      'total_time': int(response_time)
-    },
-  }
+  result = summarizer.ask_through_embeddings(f'Based om the transcript {question}')
+  processing_time = utils.now() - start
+  
+  # done
+  result['performance']['processing_time'] = int(processing_time)
+  result['performance']['total_time'] = int(processing_time)
+  return result
 
 @app.route('/<filepath:path>')
 def server_static(filepath):

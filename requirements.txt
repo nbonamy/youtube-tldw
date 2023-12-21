@@ -1,4 +1,5 @@
 yt_dlp
+requests
 langchain
 chromadb
 bottle

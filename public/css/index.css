@@ -36,4 +36,7 @@ main {
 	font-size: 1.25rem;
 	font-weight: bold;
 	margin-bottom: 0px;
+	overflow: hidden;
+	white-space:nowrap;
+	text-overflow:ellipsis;
 }
