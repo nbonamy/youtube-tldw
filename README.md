@@ -3,6 +3,14 @@ YouTube - Too Long; Didn't Watch
 
 Python webapp to summarize YouTube videos. Tested on macOS. Requires [ollama](https://ollama.ai) to run on host.
 
+## Ollama setup
+
+Do not forget to pull at least [one model for Ollama](https://ollama.ai/library).
+
+```
+ollama pull <model_name>
+```
+
 ## Local execution
 
 ```
