@@ -42,17 +42,17 @@ class Summarizer:
     
     # now query
     print('[summarize] retrieving')
-    stream_handler = StreamHandler()
-    qachain = RetrievalQA.from_chain_type(self.ollama, retriever=self.vectorstore.as_retriever(search_kwargs={"k": 1}), callbacks=[stream_handler])
+    qachain = RetrievalQA.from_chain_type(self.ollama, retriever=self.vectorstore.as_retriever(search_kwargs={"k": 1}))
     qachain({"query": question})
     
     # done
-    return stream_handler.output()
+    return self.stream_handler.output()
 
   def _summarize_through_embeddings(self, ollama_model, document, verbosity)-> dict:
 
     # ollama
-    self.ollama = Ollama(base_url=self.config.ollama_url(), model=ollama_model)
+    self.stream_handler = StreamHandler()
+    self.ollama = Ollama(base_url=self.config.ollama_url(), model=ollama_model, callbacks=[self.stream_handler])
 
     # split
     print('[summarize] splitting text')
@@ -93,12 +93,19 @@ class Summarizer:
 
 class StreamHandler(BaseCallbackHandler):
   def __init__(self):
+    self.reset()
+
+  def reset(self):
     self.created = utils.now()
     self.text = None
     self.start = None
     self.end = None
     self.tokens = 0
 
+  def on_llm_start(self, serialized: dict, prompts: dict, **kwargs) -> None:
+    print('[summarize] llm starting')
+    self.reset()
+  
   def on_llm_new_token(self, token: str, **kwargs) -> None:
     if self.text is None:
       self.text = token
@@ -110,16 +117,6 @@ class StreamHandler(BaseCallbackHandler):
       self.tokens += 1
       self.end = utils.now()
 
-  def on_chain_start(self, serialized: dict, inputs: dict, **kwargs) -> None:
-    if self.text is None:
-      self.start = utils.now()
-      self.end = utils.now()
-  
-  def on_chain_end(self, outputs: dict, **kwargs) -> None:
-    if self.text is None:
-      self.text = outputs['result']
-      self.end = utils.now()
-  
   def time_1st_token(self) -> float:
     return self.start - self.created
 
