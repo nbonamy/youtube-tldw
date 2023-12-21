@@ -20,7 +20,7 @@ var vm = new Vue({
   computed: {
     performance() {
       let perf = this.response?.performance
-      return `Total time: ${perf?.total_time} ms / Time to 1st token: ${perf?.time_1st_token} ms / Tokens per sec: ${perf?.tokens_per_sec}`
+      return `Total time: ${perf?.total_time} ms / Tokens: ${perf?.tokens} / Time to 1st token: ${perf?.time_1st_token} ms / Tokens per sec: ${perf?.tokens_per_sec}`
     }
   },
   methods: {
