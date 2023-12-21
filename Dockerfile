@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # config file
 RUN echo "[General]\nollama_url=http://host.docker.internal:11434" > youtube-tldw.conf
 
-# Make port 80 available to the world outside this container
+# Make port 5555 available to the world outside this container
 EXPOSE 5555
 
 # Run app.py when the container launches
