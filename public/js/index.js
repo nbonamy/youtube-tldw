@@ -12,6 +12,7 @@ var vm = new Vue({
     method: 'prompt',
     verbosity: 'concise',
     response: null,
+    question: null,
     hasEmbeds: false,
     isReady: false,
     isLoading: false,
@@ -63,6 +64,7 @@ var vm = new Vue({
       axios.get(`/summarize?video=${this.video}&lang=${this.lang}&model=${this.model}&method=${this.method}&verbosity=${this.verbosity}`).then(response => {
         this.response = response.data
         this.hasEmbeds = (this.method == 'embeddings')
+        this.question = null
         this.isLoading = false
       }).catch(_ => {
         this.showError('Error while summarizing video.')
