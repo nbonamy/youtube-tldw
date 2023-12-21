@@ -77,7 +77,7 @@ class Summarizer:
     # now run it
     print('[summarize] prompting')
     stream_handler = StreamHandler()
-    chat_model = ChatOllama(model=model, callbacks=[stream_handler])
+    chat_model = ChatOllama(base_url=self.config.ollama_url(), model=model, callbacks=[stream_handler])
     chat_model(messages)
 
     # done

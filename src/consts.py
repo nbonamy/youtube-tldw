@@ -1,6 +1,6 @@
 
 # paths
-CONFIG_PATH = '../config/tldw.conf'
+CONFIG_PATH = './youtube-tldw.conf'
 
 # constants
 VERBOSITY_CONCISE = 'concise'
