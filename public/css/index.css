@@ -1,0 +1,35 @@
+
+a {
+	color: black;
+}
+
+main {
+	display: flex;
+	flex-direction: row;
+	width: 80%;
+	margin: 0 auto;
+}
+
+.form input, .form select {
+	width: 400px;
+}
+
+.summary {
+	flex-grow: 1;
+}
+
+.header {
+	margin-bottom: 16px;
+}
+
+.header .thumbnail {
+	float: left;
+	height: 64px;
+	margin-right: 16px;
+}
+
+.header .title {
+	font-size: 1.25rem;
+	font-weight: bold;
+	margin-bottom: 0px;
+}

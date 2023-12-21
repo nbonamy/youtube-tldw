@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<link rel="icon" type="image/ico" href="/img/icon.png">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.min.css">
+	<link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
+	<link rel="stylesheet" href="css/index.css">
+	<script defer src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	<script defer src="https://cdn.jsdelivr.net/npm/vue-router@3.1.3/dist/vue-router.min.js"></script>
+	<script defer src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
+	<script defer src="https://unpkg.com/axios/dist/axios.min.js"></script>
+	<script defer src="js/index.js"></script>
+	<title>YouTube - Too Long; Didn't Watch</title>
+</head>
+
+<body>
+	<div id="app">
+		<b-loading :is-full-page="true" :active.sync="isLoading" :can-cancel="false"></b-loading>
+		<header class="hero">
+			<div class="hero-body">
+				<div class="container">
+					<h1 class="title">youtube-tldw</h1>
+					<h2 class="subtitle"> summarize youtube videos you don't have time to watch! </h2>
+				</div>
+			</div>
+		</header>
+		<main>
+			<section class="section form">
+				<b-field label="Video URL">
+					<b-input v-model="video" placeholder="Enter YouTube video URL" @blur="loadVideoInfo" @keyup.native="unready"/>
+				</b-field>
+				<b-field label="Language">
+					<b-select v-model="lang">
+						<option v-for="lang in langs" :value="lang" :key="lang">
+							{{ lang }}
+						</option>
+					</b-select>
+				</b-field>
+				<b-field label="Model">
+					<b-select v-model="model">
+						<option v-for="model in models" :value="model" :key="model">
+							{{ model }}
+						</option>
+					</b-select>
+				</b-field>
+				<b-field label="Method">
+					<b-select v-model="method">
+						<option value="prompt" selected>Prompt</option>
+						<option value="embeddings">Embeddings</option>
+					</b-select>
+				</b-field>
+				<b-field label="Verbosity">
+					<b-select v-model="verbosity">
+						<option value="concise" selected>Concise</option>
+						<option value="detailed">Detailed</option>
+					</b-select>
+				</b-field>
+				<b-field label="">
+					<b-button @click="summarize" type="is-info" :disabled="!isReady">Summarize</b-button>
+				</b-field>
+			</section>
+			<section class="section summary">
+				<section class="header" v-if="info">
+					<img :src="info.thumbnail" class="thumbnail">
+					<div class="title"><a :href="info.original_url" target="_blank">{{ info.title }}</a></div>
+					<div class="channel"><a :href="info.channel_url" target="_blank">{{ info?.channel }}</a></div>
+					<div class="date">{{ formatDate(parseDate(info?.date)) }}</div>
+				</section>
+				<b-field v-if="info">
+					<b-input type="textarea" v-model="summary" placeholder="Ready to summarize!" rows="15" cols="256" :readonly="true"></b-input>
+				</b-field>
+				<span v-if="summary">Total time: {{ time }} ms</span>
+			</section>
+		</main>
+	</div>
+
+</body>
+
+</html>
