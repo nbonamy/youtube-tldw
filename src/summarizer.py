@@ -26,11 +26,11 @@ class Summarizer:
     url = f'{self.config.ollama_url()}/api/tags'
     return requests.get(url).json()
 
-  def summarize(self, captions, model, method, verbosity) -> dict:
+  def summarize(self, captions, model, method, verbosity, lang) -> dict:
     if method == 'embeddings':
-      return self._summarize_through_embeddings(model, captions, verbosity)
+      return self._summarize_through_embeddings(model, captions, verbosity, lang)
     elif method == 'prompt':
-      return self._summarize_through_prompt(model, captions, verbosity)
+      return self._summarize_through_prompt(model, captions, verbosity, lang)
     else:
       raise Exception('Unknown method')
 
@@ -48,7 +48,7 @@ class Summarizer:
     # done
     return self.stream_handler.output()
 
-  def _summarize_through_embeddings(self, ollama_model, document, verbosity)-> dict:
+  def _summarize_through_embeddings(self, ollama_model, document, verbosity, lang)-> dict:
 
     # ollama
     self.stream_handler = StreamHandler()
@@ -65,12 +65,12 @@ class Summarizer:
     self.vectorstore = Chroma.from_documents(documents=all_splits, embedding=oembed)
 
     # now query
-    return self.ask_through_embeddings(self._system_prompt(verbosity))
+    return self.ask_through_embeddings(self._system_prompt(lang, verbosity))
 
-  def _summarize_through_prompt(self, model, document, verbosity)-> dict:
+  def _summarize_through_prompt(self, model, document, verbosity, lang)-> dict:
     
     # messages
-    system_message = SystemMessage(content=self._system_prompt(verbosity))
+    system_message = SystemMessage(content=self._system_prompt(lang, verbosity))
     human_message = HumanMessage(content=document)
     messages = [system_message, human_message]
     
@@ -83,9 +83,20 @@ class Summarizer:
     # done
     return stream_handler.output()
 
-  def _system_prompt(self, verbosity) -> str:
+  def _system_prompt(self, lang, verbosity) -> str:
+
+    # french
+    if lang.startswith('fr'):
+      if verbosity == consts.VERBOSITY_CONCISE:
+        return 'Générer un résumé concis (1 paragraphe, 250 mots maximum) en français de la transcription fournie ci-dessous. Utilisez le présent.'
+      elif verbosity == consts.VERBOSITY_DETAILED:
+        return 'Genérer un résumé détaillé en français de la transcription fournie ci-dessous. Fournir les points clés et les informations détaillées. Utilisez le présent.'
+      else:
+        raise Exception('Unknown verbosity')
+
+    # default english
     if verbosity == consts.VERBOSITY_CONCISE:
-      return 'Generate a concise summary of the transcript provided below. Use present tense.'
+      return 'Generate a concise summary (1 paragraph, 250 words max) of the transcript provided below. Use present tense.'
     elif verbosity == consts.VERBOSITY_DETAILED:
       return 'Generate a detailed summary of the transcript provided below. Provide key highlights and detailed insights. Use present tense.'
     else:

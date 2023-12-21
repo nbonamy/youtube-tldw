@@ -30,8 +30,8 @@
 		</header>
 		<main>
 			<section class="section form">
-				<b-field label="Video URL">
-					<b-input v-model="video" placeholder="Enter YouTube video URL" @blur="loadVideoInfo" @keyup.native="unready"/>
+				<b-field label="Video">
+					<b-input v-model="video" placeholder="Enter YouTube video ID or URL" @blur="loadVideoInfo" @keyup.native="unready"/>
 				</b-field>
 				<b-field label="Language">
 					<b-select v-model="lang">

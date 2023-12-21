@@ -40,22 +40,29 @@ var vm = new Vue({
       })
     },
     loadVideoInfo() {
-      this.summary = null
+      if (this.video == null || this.video == '') {
+        return
+      }
+      this.info = null
+      this.langs = ['default']
+      this.lang = this.langs[0]
+      this.isReady = false
+      this.response = null
       this.hasEmbeds = false
       this.isLoading = true
       axios.get(`/info?video=${this.video}`).then(response => {
-        this.info = response.data
-        if (response.data.subtitles.length > 0) {
-          this.langs = response.data.subtitles
-          this.lang = this.langs[0]
+        if (response.data.subtitles.length == 0 && response.data.captions.length == 0) {
+          this.showError('No subtitles or captions available.')
         } else {
-          this.langs = ['default']
-          this.lang = 'default'
+          this.info = response.data
+          this.langs = [...response.data.subtitles, ...response.data.captions]
+          if (response.data.subtitles.length > 0) this.lang = this.langs[0]
+          else if (response.data.captions.indexOf('en') != -1) this.lang = 'en'
+          else this.lang = this.langs[0]
+          this.isReady = true
         }
         this.isLoading = false
-        this.isReady = true
       }).catch(_ => {
-        this.isReady = false
         this.showError('Error while getting video info.')
       })
     },

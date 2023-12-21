@@ -30,6 +30,10 @@ def info():
   downloader = Downloader(app.config.get('config'))
   video = request.query.video
   info = downloader.get_info(video)
+  # info['formats'] = ''
+  # info['requested_formats'] = ''
+  # info['thumbnails'] = ''
+  # return info
   return {
     'id': info['id'],
     'title': info['fulltitle'],
@@ -38,6 +42,7 @@ def info():
     'uploader': info['uploader'],
     'thumbnail': info['thumbnail'],
     'description': info['description'],
+    'captions': list(info['automatic_captions'].keys()),
     'subtitles': list(info['subtitles'].keys()),
     'duration_string': info['duration_string'],
     'original_url': info['webpage_url'],
@@ -79,8 +84,8 @@ def summarize():
   start = utils.now()
 
   # now summarize
-  print(f'[summarize] model {model}, method {method}, verbosity {verbosity}')
-  result = summarizer.summarize(captions, model, method, verbosity)
+  print(f'[summarize] model {model}, method {method}, verbosity {verbosity}, lang {lang}')
+  result = summarizer.summarize(captions, model, method, verbosity, lang)
 
   # time
   processing_time = utils.now() - start

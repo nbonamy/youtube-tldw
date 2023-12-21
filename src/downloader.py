@@ -13,6 +13,7 @@ class Downloader:
   def get_info(self, url):
     ydl_opts = {
       'verbose': False,
+      #'listsubtitles': True,
     }
     with YoutubeDL(ydl_opts) as ydl:
       return ydl.extract_info(url, download=False)
@@ -28,23 +29,22 @@ class Downloader:
     # get temp directory with system call
     tmp_dir = tempfile.gettempdir()
 
+    # default lang
+    if lang is None or lang == '':
+      lang = 'en'
+
     # basic options
     ydl_opts = {
       'verbose': False,
       'skip_download': True,
       'writesubtitles': True,
+      'writeautomaticsub': True,
+      'subtitleslangs': [lang],
       'outtmpl': f'{tmp_dir}/%(id)s.%(ext)s',
     }
 
-    # specify which caption
-    if lang is None or lang == '':
-      ydl_opts['writeautomaticsub'] = True
-      lang = 'en'
-    else:
-      ydl_opts['subtitleslangs'] = [lang]
-
     # extract video id
-    video_id = url.split('=')[1]
+    video_id = url if '=' not in url else url.split('=')[1]
 
     # download captions
     with YoutubeDL(ydl_opts) as ydl:
