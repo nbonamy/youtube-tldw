@@ -27,4 +27,6 @@ make build
 make run
 ```
 
+or just `make all`.
+
 Then access `http://localhost:5555`.
