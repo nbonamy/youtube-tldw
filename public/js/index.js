@@ -5,7 +5,7 @@ var vm = new Vue({
   data: {
     models: ['default'],
     langs: ['default'],
-    video: null,//'https://www.youtube.com/watch?v=KNTWhNctGZ4',
+    video: 'lAyhKaclsPM',
     info: null,
     lang: 'default',
     model: 'default',
@@ -14,7 +14,7 @@ var vm = new Vue({
     response: null,
     question: null,
     hasEmbeds: false,
-    isReady: false,
+    isReady: true,
     isLoading: false,
   },
   computed: {
@@ -68,14 +68,19 @@ var vm = new Vue({
     },
     summarize() {
       this.isLoading = true
-      axios.get(`/summarize?video=${this.video}&lang=${this.lang}&model=${this.model}&method=${this.method}&verbosity=${this.verbosity}`).then(response => {
-        this.response = response.data
-        this.hasEmbeds = (this.method == 'embeddings')
-        this.question = null
-        this.isLoading = false
-      }).catch(_ => {
-        this.showError('Error while summarizing video.')
+      let url = `/summarize?video=${this.video}&lang=${this.lang}&model=${this.model}&method=${this.method}&verbosity=${this.verbosity}`
+      this.stream(url, chunk => {
+        if (this.response == null) this.response = chunk
+        else this.response += chunk
       })
+      // this.stream().then(response => {
+      //   this.response = response.data
+      //   this.hasEmbeds = (this.method == 'embeddings')
+      //   this.question = null
+      //   this.isLoading = false
+      // }).catch(_ => {
+      //   this.showError('Error while summarizing video.')
+      // })
     },
     ask() {
       this.isLoading = true
@@ -109,9 +114,27 @@ var vm = new Vue({
         icon: 'alert-circle',
         iconPack: 'mdi'
       })
+    },
+    stream(url, callback) {
+      let streamed = false
+      axios({
+        method: 'GET',
+        url: url,
+        onDownloadProgress: (evt) => {
+          let bytes = evt.bytes
+          let text = evt.event.target.response || evt.event.target.responseText
+          let chunk = text.substring(text.length-bytes)
+          callback(chunk)
+          streamed = true
+        }
+      }).then((response) => {
+        if (streamed == false) {
+          callback(response.data)
+        }
+      })
     }
   },
-  mounted() {
+  async mounted() {
     this.loadModels()
   },
 })

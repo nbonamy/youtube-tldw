@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-
+import time
 import utils
 import consts
 import os.path
 from config import Config
 from downloader import Downloader
 from summarizer import Summarizer
-from bottle import Bottle, request, abort, static_file
+from bottle import Bottle, request, response, abort, static_file
 
 # we need this as a global so we can use it in the ask endpoint
 summarizer = None
@@ -68,16 +68,16 @@ def summarize():
 
   # default lang
   downloader = Downloader(app.config.get('config'))
-  if lang is None or lang == '' or lang == 'default':
-    langs = downloader.get_info(video)['subtitles']
-    lang = None if len(langs) == 0 else list(langs.keys())[0]
+  # if lang is None or lang == '' or lang == 'default':
+  #   langs = downloader.get_info(video)['subtitles']
+  #   lang = None if len(langs) == 0 else list(langs.keys())[0]
 
   # current time
   start = utils.now()
 
   # first get captions
   print(f'[youtube] downloading captions for {video} in lang {lang}')
-  captions = downloader.download_captions(video, lang)
+  captions = 'hello tell me more about you'#downloader.download_captions(video, lang)
 
   # time
   download_time = utils.now() - start
@@ -85,16 +85,17 @@ def summarize():
 
   # now summarize
   print(f'[summarize] model {model}, method {method}, verbosity {verbosity}, lang {lang}')
-  result = summarizer.summarize(captions, model, method, verbosity, lang)
+  return summarizer.summarize(captions, model, method, verbosity, lang)
 
+  return {}
   # time
   processing_time = utils.now() - start
 
-  # done
-  result['performance']['download_time'] = int(download_time)
-  result['performance']['processing_time'] = int(processing_time)
-  result['performance']['total_time'] = int(download_time + processing_time)
-  return result
+  # # done
+  # result['performance']['download_time'] = int(download_time)
+  # result['performance']['processing_time'] = int(processing_time)
+  # result['performance']['total_time'] = int(download_time + processing_time)
+  # return result
 
 @app.route('/ask')
 def ask():
@@ -113,6 +114,16 @@ def ask():
   result['performance']['processing_time'] = int(processing_time)
   result['performance']['total_time'] = int(processing_time)
   return result
+
+@app.route('/stream')
+def stream():
+  #response.set_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
+  yield 'START'
+  time.sleep(1)
+  yield 'MIDDLE'
+  time.sleep(1)
+  yield 'END'
+  return 'DONE!'
 
 @app.route('/<filepath:path>')
 def server_static(filepath):

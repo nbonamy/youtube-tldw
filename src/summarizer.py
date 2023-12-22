@@ -3,17 +3,23 @@
 import os
 import utils
 import consts
+import asyncio
 import requests
 from langchain.llms import Ollama
 from langchain.schema.document import Document
-from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.base import BaseCallbackHandler
+from langchain.callbacks.base import BaseCallbackHandler, AsyncCallbackHandler
+#from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.schema import HumanMessage, SystemMessage
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OllamaEmbeddings
 from langchain.chat_models import ChatOllama
 from langchain.chains import RetrievalQA
 from langchain.vectorstores import Chroma
+
+def token_generator(callback_handler):
+  for token in callback_handler.tokens:
+    print(token)
+    yield token
 
 class Summarizer:
 
@@ -51,7 +57,7 @@ class Summarizer:
   def _summarize_through_embeddings(self, ollama_model, document, verbosity, lang)-> dict:
 
     # ollama
-    self.stream_handler = StreamHandler()
+    self.stream_handler = StreamHandler(callback)
     self.ollama = Ollama(base_url=self.config.ollama_url(), model=ollama_model, callbacks=[self.stream_handler])
 
     # split
@@ -68,7 +74,7 @@ class Summarizer:
     return self.ask_through_embeddings(self._system_prompt(lang, verbosity))
 
   def _summarize_through_prompt(self, model, document, verbosity, lang)-> dict:
-    
+
     # messages
     system_message = SystemMessage(content=self._system_prompt(lang, verbosity))
     human_message = HumanMessage(content=document)
@@ -78,10 +84,11 @@ class Summarizer:
     print('[summarize] prompting')
     stream_handler = StreamHandler()
     chat_model = ChatOllama(base_url=self.config.ollama_url(), model=model, callbacks=[stream_handler])
-    chat_model(messages)
+    chat_model.apredict_messages(messages)
 
     # done
-    return stream_handler.output()
+    print('[summarize] done')
+    return token_generator(stream_handler)
 
   def _system_prompt(self, lang, verbosity) -> str:
 
@@ -103,6 +110,7 @@ class Summarizer:
       raise Exception('Unknown verbosity')
 
 class StreamHandler(BaseCallbackHandler):
+  
   def __init__(self):
     self.reset()
 
@@ -111,34 +119,38 @@ class StreamHandler(BaseCallbackHandler):
     self.text = None
     self.start = None
     self.end = None
-    self.tokens = 0
+    self.tokens = []
 
+  def on_chat_model_start(self, serialized: dict, prompts: dict, **kwargs) -> None:
+    print('[summarize] chat starting')
+    self.reset()
+      
   def on_llm_start(self, serialized: dict, prompts: dict, **kwargs) -> None:
     print('[summarize] llm starting')
     self.reset()
   
   def on_llm_new_token(self, token: str, **kwargs) -> None:
+    print(token)
+    self.tokens.append(token)
     if self.text is None:
       self.text = token
       self.start = utils.now()
       self.end = utils.now()
-      self.tokens = 1
     else:
       self.text += token
-      self.tokens += 1
       self.end = utils.now()
-
+    
   def time_1st_token(self) -> float:
     return self.start - self.created
 
   def tokens_per_sec(self)  -> float:
-    return self.tokens / (self.end - self.start) * 1000
+    return self.tokens.length / (self.end - self.start) * 1000
 
   def output(self) -> dict:
     return {
       'text': self.text.strip(),
       'performance': {
-        'tokens': self.tokens,
+        'tokens': self.tokens.length,
         'time_1st_token': int(self.time_1st_token()),
         'tokens_per_sec': round(self.tokens_per_sec(), 2)
       }
