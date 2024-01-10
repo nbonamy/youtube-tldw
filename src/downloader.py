@@ -20,7 +20,7 @@ class Downloader:
 
   def download_captions(self, url, lang=None):
     captions_filename = self._download_captions(url, lang)
-    captions = self._load_and_cleanup_captions(captions_filename)
+    captions = self._load_and_cleanup_captions(captions_filename, lang)
     os.remove(captions_filename)
     return captions
 
@@ -51,11 +51,16 @@ class Downloader:
       ydl.download(url)
       return f'{tmp_dir}/{video_id}.{lang}.vtt'
 
-  def _load_and_cleanup_captions(self, filename):
+  def _load_and_cleanup_captions(self, filename, lang):
 
     # read to memory
     with open(filename, 'r') as f:
       contents = f.read()
+
+    # remove header lines
+    contents = re.sub(r'WEBVTT\n', '', contents)
+    contents = re.sub(r'Kind: captions\n', '', contents)
+    contents = re.sub(r'Language: '+lang+'\n', '', contents)
 
     # remove timestamp lines
     contents = re.sub(r'\d\d:\d\d:\d\d\.\d\d\d --> .*\n', '', contents)
@@ -64,6 +69,9 @@ class Downloader:
     contents = re.sub(r'<\d\d:\d\d:\d\d\.\d\d\d><c>', '', contents)
     contents = re.sub(r'</c>', '', contents)
     contents = re.sub(r'\n+', '\n', contents)
+
+    # now remove music
+    contents = re.sub(r'\[Music\]', '', contents)
 
     # now combine lines
     captions = ''
