@@ -40,10 +40,14 @@ class Summarizer:
     if self.vectorstore is None:
       raise Exception('Must summarize first')
     
+    # log
+    print(f'[database] processing {question}')
+    query = f'Based on the documents answer the question at the end of the text. Base your answer only on the documents provided. If you cannot answer the question, do not come up with content, simply say that the information is not available. Now the question: {question}'
+
     # now query
     print('[summarize] retrieving')
     qachain = RetrievalQA.from_chain_type(self.ollama, retriever=self.vectorstore.as_retriever(search_kwargs={"k": 1}))
-    qachain({"query": question})
+    qachain({"query": query})
     
     # done
     return self.stream_handler.output()
