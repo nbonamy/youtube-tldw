@@ -4,16 +4,16 @@ import os
 import utils
 import consts
 import requests
-from langchain.llms import Ollama
+from langchain_community.llms import Ollama
 from langchain.schema.document import Document
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema import HumanMessage, SystemMessage
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import OllamaEmbeddings
-from langchain.chat_models import ChatOllama
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.chat_models import ChatOllama
 from langchain.chains import RetrievalQA
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 
 class Summarizer:
 
